@@ -99,7 +99,7 @@ def naver_login(driver, user_id, user_pw):
         add_log("error", f"로그인 오류: {str(e)[:100]}")
         return False
 
-def extract_blog_ids(driver, keyword):
+def extract_blog_ids(driver, keyword, target_count=100):
     """블로그 ID 추출"""
     try:
         encoded_keyword = quote(keyword)
@@ -109,8 +109,10 @@ def extract_blog_ids(driver, keyword):
         driver.get(url)
         time.sleep(2)
 
-        add_log("info", "스크롤 진행 중...")
-        for i in range(10):
+        # 목표 개수에 따라 스크롤 횟수 조정
+        scroll_count = max(15, target_count // 5)
+        add_log("info", f"스크롤 진행 중... ({scroll_count}회)")
+        for i in range(scroll_count):
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(0.5)
 
@@ -194,7 +196,7 @@ def send_buddy_request(driver, blog_id, message):
         add_log("error", f"[실패] {blog_id} 오류: {str(e)[:50]}")
         return False
 
-def run_automation(naver_id, naver_pw, keyword, message, status_container):
+def run_automation(naver_id, naver_pw, keyword, message, request_count, status_container):
     """자동화 실행"""
     st.session_state.is_running = True
     st.session_state.stop_requested = False
@@ -203,6 +205,7 @@ def run_automation(naver_id, naver_pw, keyword, message, status_container):
     add_log("info", "서로이웃 자동 신청을 시작합니다...")
     add_log("info", f"계정: {naver_id}")
     add_log("info", f"키워드: {keyword}")
+    add_log("info", f"신청 개수: {request_count}개")
 
     driver = None
     try:
@@ -224,13 +227,18 @@ def run_automation(naver_id, naver_pw, keyword, message, status_container):
         # 블로그 목록 추출
         add_log("info", "=" * 40)
         add_log("info", "2. 블로그 목록 추출")
-        blog_ids = extract_blog_ids(driver, keyword)
+        blog_ids = extract_blog_ids(driver, keyword, request_count)
 
         if not blog_ids:
             add_log("warning", "추출된 블로그가 없습니다.")
             return
 
         add_log("success", f"추출된 블로그 ID: {len(blog_ids)}개")
+
+        # 신청 개수 제한
+        if len(blog_ids) > request_count:
+            blog_ids = blog_ids[:request_count]
+            add_log("info", f"신청 개수 제한: {request_count}개로 제한됨")
 
         # 서로이웃 신청
         add_log("info", "=" * 40)
@@ -289,6 +297,14 @@ with col1:
     st.subheader("🔍 검색 키워드")
     keyword = st.text_input("키워드", placeholder="블로그 검색 키워드를 입력하세요")
 
+    st.subheader("🔢 신청 개수")
+    request_count = st.radio(
+        "서로이웃 신청 개수 선택",
+        options=[30, 50, 100],
+        horizontal=True,
+        index=0
+    )
+
     st.divider()
 
     # 시작/중지 버튼
@@ -307,7 +323,7 @@ with col1:
                 st.error("❌ 검색 키워드를 입력해주세요.")
             else:
                 with st.spinner("자동화 실행 중..."):
-                    run_automation(naver_id, naver_pw, keyword, message, col2)
+                    run_automation(naver_id, naver_pw, keyword, message, request_count, col2)
                     st.rerun()
 
     with btn_col2:
