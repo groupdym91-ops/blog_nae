@@ -361,9 +361,17 @@ with col2:
         else:
             st.info("로그가 여기에 표시됩니다. 시작 버튼을 눌러주세요.")
 
-    if st.button("🗑️ 로그 지우기", use_container_width=True):
-        st.session_state.logs = []
-        st.rerun()
+    btn_col_a, btn_col_b = st.columns(2)
+    with btn_col_a:
+        if st.button("🗑️ 로그 지우기", use_container_width=True):
+            st.session_state.logs = []
+            st.rerun()
+    with btn_col_b:
+        if st.button("🔄 상태 초기화", use_container_width=True):
+            st.session_state.logs = []
+            st.session_state.is_running = False
+            st.session_state.stop_requested = False
+            st.rerun()
 
 # 사이드바 안내
 with st.sidebar:
