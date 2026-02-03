@@ -204,7 +204,12 @@ def run_automation(naver_id, naver_pw, keyword, message, status_container):
     driver = None
     try:
         add_log("info", "브라우저 시작 중...")
-        driver = get_chrome_driver()
+        try:
+            driver = get_chrome_driver()
+        except Exception as e:
+            add_log("error", f"브라우저 시작 실패: {str(e)[:200]}")
+            st.session_state.is_running = False
+            return
 
         # 로그인
         add_log("info", "=" * 40)
@@ -262,8 +267,8 @@ col1, col2 = st.columns([1, 1], gap="large")
 
 with col1:
     st.subheader("🔐 네이버 계정")
-    naver_id = st.text_input("아이디", placeholder="네이버 아이디를 입력하세요")
-    naver_pw = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요")
+    naver_id = st.text_input("아이디", placeholder="네이버 아이디를 입력하세요", autocomplete="off")
+    naver_pw = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요", autocomplete="new-password")
 
     st.subheader("💬 서로이웃 메시지")
     message = st.text_area(
