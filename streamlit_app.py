@@ -361,12 +361,12 @@ with col1:
     with btn_col2:
         if st.button(
             "⏹️ 중지",
-            disabled=not st.session_state.is_running,
             use_container_width=True,
             type="secondary"
         ):
             st.session_state.stop_requested = True
-            add_log("warning", "중지 요청됨... 현재 작업 완료 후 중지됩니다.")
+            st.session_state.is_running = False
+            add_log("warning", "중지 요청됨")
             st.rerun()
 
 with col2:
