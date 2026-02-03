@@ -293,8 +293,15 @@ col1, col2 = st.columns([1, 1], gap="large")
 
 with col1:
     st.subheader("🔐 네이버 계정")
-    naver_id = st.text_input("아이디", placeholder="네이버 아이디를 입력하세요", autocomplete="off")
-    naver_pw = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력하세요", autocomplete="new-password")
+
+    # 자동완성 방지를 위한 숨겨진 더미 필드
+    st.markdown("""
+    <input type="text" name="fake_user" style="display:none" />
+    <input type="password" name="fake_pass" style="display:none" />
+    """, unsafe_allow_html=True)
+
+    naver_id = st.text_input("네이버 아이디", placeholder="아이디를 입력하세요", key="nid_field")
+    naver_pw = st.text_input("네이버 비번", type="password", placeholder="비번을 입력하세요", key="npw_field")
 
     st.subheader("💬 서로이웃 메시지")
     message = st.text_area(
