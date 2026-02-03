@@ -196,7 +196,7 @@ def send_buddy_request(driver, blog_id, message):
         add_log("error", f"[실패] {blog_id} 오류: {str(e)[:50]}")
         return False
 
-def run_automation(naver_id, naver_pw, keyword, message, request_count, status_container):
+def run_automation(naver_id, naver_pw, keyword, message, request_count, exclude_ids, status_container):
     """자동화 실행"""
     st.session_state.is_running = True
     st.session_state.stop_requested = False
@@ -206,6 +206,8 @@ def run_automation(naver_id, naver_pw, keyword, message, request_count, status_c
     add_log("info", f"계정: {naver_id}")
     add_log("info", f"키워드: {keyword}")
     add_log("info", f"신청 개수: {request_count}개")
+    if exclude_ids:
+        add_log("info", f"제외 아이디: {len(exclude_ids)}개")
 
     driver = None
     try:
@@ -234,6 +236,14 @@ def run_automation(naver_id, naver_pw, keyword, message, request_count, status_c
             return
 
         add_log("success", f"추출된 블로그 ID: {len(blog_ids)}개")
+
+        # 제외 아이디 필터링
+        if exclude_ids:
+            original_count = len(blog_ids)
+            blog_ids = [bid for bid in blog_ids if bid not in exclude_ids]
+            excluded_count = original_count - len(blog_ids)
+            if excluded_count > 0:
+                add_log("info", f"제외된 아이디: {excluded_count}개")
 
         # 신청 개수 제한
         if len(blog_ids) > request_count:
@@ -305,6 +315,13 @@ with col1:
         index=0
     )
 
+    st.subheader("🚫 제외 아이디")
+    exclude_ids_input = st.text_area(
+        "제외할 블로그 아이디",
+        height=80,
+        placeholder="제외할 아이디를 입력하세요 (쉼표 또는 줄바꿈으로 구분)\n예: blogid1, blogid2, blogid3"
+    )
+
     st.divider()
 
     # 시작/중지 버튼
@@ -322,8 +339,16 @@ with col1:
             elif not keyword:
                 st.error("❌ 검색 키워드를 입력해주세요.")
             else:
+                # 제외 아이디 파싱 (쉼표, 줄바꿈, 공백으로 구분)
+                exclude_ids = set()
+                if exclude_ids_input.strip():
+                    for item in exclude_ids_input.replace('\n', ',').replace(' ', ',').split(','):
+                        item = item.strip()
+                        if item:
+                            exclude_ids.add(item)
+
                 with st.spinner("자동화 실행 중..."):
-                    run_automation(naver_id, naver_pw, keyword, message, request_count, col2)
+                    run_automation(naver_id, naver_pw, keyword, message, request_count, exclude_ids, col2)
                     st.rerun()
 
     with btn_col2:
