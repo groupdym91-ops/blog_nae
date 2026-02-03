@@ -25,6 +25,8 @@ if 'logs' not in st.session_state:
     st.session_state.logs = []
 if 'is_running' not in st.session_state:
     st.session_state.is_running = False
+if 'stop_requested' not in st.session_state:
+    st.session_state.stop_requested = False
 
 def add_log(log_type, message):
     """로그 추가"""
@@ -195,6 +197,7 @@ def send_buddy_request(driver, blog_id, message):
 def run_automation(naver_id, naver_pw, keyword, message, status_container):
     """자동화 실행"""
     st.session_state.is_running = True
+    st.session_state.stop_requested = False
     st.session_state.logs = []
 
     add_log("info", "서로이웃 자동 신청을 시작합니다...")
@@ -237,6 +240,11 @@ def run_automation(naver_id, naver_pw, keyword, message, status_container):
         fail_count = 0
 
         for idx, blog_id in enumerate(blog_ids, 1):
+            # 중지 요청 확인
+            if st.session_state.stop_requested:
+                add_log("warning", "사용자에 의해 중지되었습니다.")
+                break
+
             add_log("info", f"[{idx}/{len(blog_ids)}] 처리 중...")
 
             if send_buddy_request(driver, blog_id, message):
@@ -283,20 +291,35 @@ with col1:
 
     st.divider()
 
-    if st.button(
-        "🚀 서로이웃 신청 시작",
-        disabled=st.session_state.is_running,
-        use_container_width=True,
-        type="primary"
-    ):
-        if not naver_id or not naver_pw:
-            st.error("❌ 네이버 아이디와 비밀번호를 입력해주세요.")
-        elif not keyword:
-            st.error("❌ 검색 키워드를 입력해주세요.")
-        else:
-            with st.spinner("자동화 실행 중..."):
-                run_automation(naver_id, naver_pw, keyword, message, col2)
-                st.rerun()
+    # 시작/중지 버튼
+    btn_col1, btn_col2 = st.columns(2)
+
+    with btn_col1:
+        if st.button(
+            "🚀 서로이웃 신청 시작",
+            disabled=st.session_state.is_running,
+            use_container_width=True,
+            type="primary"
+        ):
+            if not naver_id or not naver_pw:
+                st.error("❌ 네이버 아이디와 비밀번호를 입력해주세요.")
+            elif not keyword:
+                st.error("❌ 검색 키워드를 입력해주세요.")
+            else:
+                with st.spinner("자동화 실행 중..."):
+                    run_automation(naver_id, naver_pw, keyword, message, col2)
+                    st.rerun()
+
+    with btn_col2:
+        if st.button(
+            "⏹️ 중지",
+            disabled=not st.session_state.is_running,
+            use_container_width=True,
+            type="secondary"
+        ):
+            st.session_state.stop_requested = True
+            add_log("warning", "중지 요청됨... 현재 작업 완료 후 중지됩니다.")
+            st.rerun()
 
 with col2:
     st.subheader("📋 실시간 로그")
