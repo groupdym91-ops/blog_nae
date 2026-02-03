@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
 import time
+import os
 from urllib.parse import quote, urlparse, parse_qs
 
 # Selenium 관련 임포트
@@ -11,7 +12,6 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 
 # 페이지 설정
 st.set_page_config(
@@ -36,20 +36,33 @@ def add_log(log_type, message):
     })
 
 def get_chrome_driver():
-    """Chrome 드라이버 설정"""
+    """Chrome 드라이버 설정 (Streamlit Cloud 호환)"""
     options = Options()
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-blink-features=AutomationControlled')
-    options.add_experimental_option('excludeSwitches', ['enable-automation'])
-    options.add_experimental_option('useAutomationExtension', False)
+    options.add_argument('--window-size=1920,1080')
 
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=options
-    )
+    # Streamlit Cloud 환경 감지 (Linux + 시스템 chromium 존재)
+    is_streamlit_cloud = os.path.exists('/usr/bin/chromium-browser') or os.path.exists('/usr/bin/chromium')
+
+    if is_streamlit_cloud:
+        # Streamlit Cloud: 시스템 chromium 사용
+        chromium_path = '/usr/bin/chromium-browser' if os.path.exists('/usr/bin/chromium-browser') else '/usr/bin/chromium'
+        chromedriver_path = '/usr/bin/chromedriver'
+
+        options.binary_location = chromium_path
+        service = Service(chromedriver_path)
+    else:
+        # 로컬 환경: webdriver-manager 사용
+        from webdriver_manager.chrome import ChromeDriverManager
+        service = Service(ChromeDriverManager().install())
+        options.add_experimental_option('excludeSwitches', ['enable-automation'])
+        options.add_experimental_option('useAutomationExtension', False)
+
+    driver = webdriver.Chrome(service=service, options=options)
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     return driver
 
